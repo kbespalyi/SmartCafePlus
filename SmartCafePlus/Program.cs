@@ -37,14 +37,14 @@ namespace SmartCafePlus
 		{
 			this.quantity = 0;
 			return new Ingredient(output, (percentOfRefuse <= 0 || percentOfRefuse > 100
-               ? this.quantity
-			   : this.quantity - this.quantity / 100 * percentOfRefuse)
+               			? this.quantity
+			   	: this.quantity - this.quantity / 100 * percentOfRefuse)
 			);
 		}
 
 	}
 
-	public enum TypesOfCoffee
+	public enum CoffeeTypes
 	{
 		Mocha, Espresso, Mokachino, BlackCoffee, Turkish, French, Americano, Cappuccino, Irish, Jamaican
 	}
@@ -56,8 +56,8 @@ namespace SmartCafePlus
 
 	public class Coffee : Beverage
 	{
-		private TypesOfCoffee species;
-		public TypesOfCoffee Species
+		private CoffeeTypes species;
+		public CoffeeTypes Species
 		{
 			get
 			{
@@ -85,7 +85,7 @@ namespace SmartCafePlus
 			}
 		}
 
-		public Coffee(TypesOfCoffee species, float weight) {
+		public Coffee(CoffeeTypes species, float weight) {
 			this.weight = weight;
 			this.species = species;
 		}
@@ -130,7 +130,7 @@ namespace SmartCafePlus
 	 */
 	public sealed class Mocha : Coffee
 	{
-		public Mocha() : base(TypesOfCoffee.Mocha, 100) // 100 gr per 1 cup of Mocha Coffee
+		public Mocha() : base(CoffeeTypes.Mocha, 100) // 100 gr per 1 cup of Mocha Coffee
 		{
 			addIngredients(new List<Ingredient>() {
 				new Ingredient(TypesOfIngredients.CoffeeBeans, this.Weight / 4).Process(TypesOfIngredients.GroundCoffee, 20),
@@ -156,7 +156,7 @@ namespace SmartCafePlus
 	 */
 	public sealed class Mokachino : Coffee
 	{
-		public Mokachino() : base(TypesOfCoffee.Mokachino, 100) // 100 gr per 1 cup of Mokachino Coffee
+		public Mokachino() : base(CoffeeTypes.Mokachino, 100) // 100 gr per 1 cup of Mokachino Coffee
 		{
 			addIngredients(new List<Ingredient>() {
 				new Ingredient(TypesOfIngredients.CoffeeBeans, this.Weight / 5).Process(TypesOfIngredients.GroundCoffee, 20),
@@ -178,7 +178,7 @@ namespace SmartCafePlus
 	 */
 	public sealed class Espresso : Coffee
 	{
-		public Espresso() : base(TypesOfCoffee.Espresso, 100) // 100 gr per 1 cup of Espresso Coffee
+		public Espresso() : base(CoffeeTypes.Espresso, 50) // 50 gr per 1 cup of Espresso Coffee
 		{
 			addIngredients(new List<Ingredient>() {
 				new Ingredient(TypesOfIngredients.CoffeeBeans, this.Weight / 3).Process(TypesOfIngredients.GroundCoffee, 20),
@@ -203,7 +203,7 @@ namespace SmartCafePlus
 	 */
 	public sealed class BlackCoffee : Coffee
 	{
-		public BlackCoffee(bool plusSugar, bool plusMilk) : base(TypesOfCoffee.BlackCoffee, 100) // 100 gr per 1 cup of BlackCoffee
+		public BlackCoffee(bool plusSugar, bool plusMilk) : base(CoffeeTypes.BlackCoffee, 100) // 100 gr per 1 cup of BlackCoffee
 		{
 			addIngredients(new List<Ingredient>() {
 				new Ingredient(TypesOfIngredients.CoffeeBeans, this.Weight / 3).Process(TypesOfIngredients.GroundCoffee, 20),
@@ -244,8 +244,9 @@ namespace SmartCafePlus
 		private static CoffeeMachine instance = null; 
 
 		private Dictionary<Coffee, int> drinks = new Dictionary<Coffee, int>();
-		
-		public CoffeeMachine() {}
+		private Dictionary<CoffeeTypes, Response> report = new Dictionary<CoffeeTypes, Response>();
+
+		private CoffeeMachine() {}
 
 		public static CoffeeMachine GetInstance()
 		{
@@ -258,18 +259,51 @@ namespace SmartCafePlus
 
 		public class Response
 		{
-			public int quantityOfCups = 0;
-			public float totalOfIngredients = 0;
+			private int quantityOfCups = 0;
+			public int QuantityOfCups
+			{
+				get
+				{
+					return quantityOfCups;
+				}
+				set
+				{
+					quantityOfCups = value;
+				}
+			}
+			private float totalOfIngredients = 0;
+			public float TotalOfIngredients
+			{
+				get
+				{
+					return totalOfIngredients;
+				}
+				set
+				{
+					totalOfIngredients = value;
+				}
+			}
+
+			public Response()
+			{
+				this.quantityOfCups = 0;
+				this.totalOfIngredients = 0;
+			}
+
+			public Response(int quantityOfCups, float totalOfIngredients) {
+				this.quantityOfCups = quantityOfCups;
+				this.totalOfIngredients = totalOfIngredients;
+			}
 		}
 
-		public Response Calculate()
+		public Response CalculateTotals()
 		{
 			Response response = new Response();
 
 			foreach (KeyValuePair<Coffee, int> entry in drinks)
 			{
-				response.totalOfIngredients += entry.Key.SumOfIngredients * entry.Value;
-				response.quantityOfCups += entry.Value;
+				response.TotalOfIngredients += entry.Key.SumOfIngredients * entry.Value;
+				response.QuantityOfCups += entry.Value;
 			}
 
 			return response;
@@ -286,8 +320,8 @@ namespace SmartCafePlus
 				{
 					if (++index == drinks.Count)
 					{
-						response.totalOfIngredients = entry.Key.SumOfIngredients * entry.Value;
-						response.quantityOfCups = entry.Value;
+						response.TotalOfIngredients = entry.Key.SumOfIngredients * entry.Value;
+						response.QuantityOfCups = entry.Value;
 						break;
 					}
 				}
@@ -331,192 +365,102 @@ namespace SmartCafePlus
 		}
 	}
 
+	delegate void MakeCoffeeFunc(int qty);
+	delegate bool DoChoiceFunc(CoffeeTypes coffeeTypes, MakeCoffeeFunc makeCoffeeImpl);
+
 	class MainClass
 	{
 		public static void Main(string[] args)
 		{
 
+			CoffeeMachine coffeeMachine = CoffeeMachine.GetInstance();
+
 			Func<bool> DisplayMenu = () =>
 			{
 				Console.WriteLine("Coffee Machine");
-				Console.WriteLine("Please select one item from menu:");
-				Console.WriteLine("1A1\t<= Black Coffee (10oz)");
-				Console.WriteLine("1A1+\t <= Black Coffee with sugar (10oz)");
-				Console.WriteLine("1A1#\t <= Black Coffee with milk (10oz)");
-				Console.WriteLine("1A1*\t <= Black Coffee with milk and sugar (10oz)");
-				Console.WriteLine("1B0\t <= Espresso (10oz)");
-				Console.WriteLine("1C0\t <= Mocha (10oz)");
-				Console.WriteLine("1D0\t <= Mokachino (10oz)");
-				Console.WriteLine("=\t <= Calculate total ordered");
+				Console.WriteLine("Please select one item from menu using code:");
+				Console.WriteLine("1A\t <= Black Coffee (8oz)");
+				Console.WriteLine("1A+\t <= Black Coffee with sugar (8oz)");
+				Console.WriteLine("1A#\t <= Black Coffee with milk (8oz)");
+				Console.WriteLine("1A*\t <= Black Coffee with milk and sugar (8oz)");
+				Console.WriteLine("1B\t <= Espresso (5oz)");
+				Console.WriteLine("1C\t <= Mocha (8oz)");
+				Console.WriteLine("1D\t <= Mokachino (8oz)");
+				Console.WriteLine("=\t <= Calculate the total ordered");
 				Console.WriteLine("*\t <= Clean console");
 				Console.WriteLine("ESC+ENTER\t => Exit");
 				return true;
 			};
 
-			bool flagReset = false;
+			DoChoiceFunc DoChoiceImpl = (coffeeTypes, makeCoffeeImpl) =>
+			{
+				int qty = 0;
+				bool ex = false;
 
-			CoffeeMachine coffeeMachine = CoffeeMachine.GetInstance();
+				do
+				{
+					Console.Write("\nYour choice is {0}.", coffeeTypes.ToString());
+					Console.Write("\nEnter the quantity: ");
+					string line = Console.ReadLine();
+					if (int.TryParse(line, out qty) && qty > 0 && qty < 100)
+					{
+						makeCoffeeImpl(qty);
+						ex = true;
+					}
+					else
+					{
+						Console.WriteLine("Not a number, please try again...");
+					}
+				}
+				while (!ex);
+				Console.WriteLine("\nThank you!! Coffee machine made {0} cups of coffee for you.", coffeeMachine.GetLastOrder().QuantityOfCups);
+				Console.WriteLine("\nReady to have your next command.\n");
+				return true;
+			};
 
 			DisplayMenu();
 
-			flagReset = false;
+			bool flagReset = false;
 
 			do
 			{
-				bool ex = false;
-
-				Console.Write("=>");
+				Console.Write("=> ");
 				String yourChoice = Console.ReadLine();
 
 				switch (yourChoice.ToUpper())
 				{
-					case "1A1":
-						do {
-							Console.Write("\nYour choice is {0}.", TypesOfCoffee.BlackCoffee.ToString());
-							Console.Write("\nEnter the quantity: ");
-							string line = Console.ReadLine();
-							int qty;
-							if (int.TryParse(line, out qty) && qty > 0 && qty < 100)
-							{
-								coffeeMachine.MakeBlackCoffee(qty);
-								ex = true;
-							}
-							else
-							{
-								Console.WriteLine("Not a number, please try again...");
-							}
-						}
-						while (!ex);
-						Console.WriteLine("\nThank you!! Coffee machine made {0} cups of coffee for you.", coffeeMachine.GetLastOrder().quantityOfCups);
+					case "1A":
+						DoChoiceImpl(CoffeeTypes.BlackCoffee, qty => coffeeMachine.MakeBlackCoffee(qty));
 						break;
-					case "1A1+":
-						do
-						{
-							Console.Write("\nYour choice is {0} with sugar.", TypesOfCoffee.BlackCoffee.ToString());
-							Console.Write("\nEnter the quantity: ");
-							string line = Console.ReadLine();
-							int qty;
-							if (int.TryParse(line, out qty) && qty > 0 && qty < 100)
-							{
-								coffeeMachine.MakeBlackCoffeeWithSugar(qty);
-								ex = true;
-							}
-							else
-							{
-								Console.WriteLine("Not a number, please try again...");
-							}
-						}
-						while (!ex);
-						Console.WriteLine("\nThank you!! Coffee machine made {0} cups of coffee for you.", coffeeMachine.GetLastOrder().quantityOfCups);
+					case "1A+":
+						DoChoiceImpl(CoffeeTypes.BlackCoffee, qty => coffeeMachine.MakeBlackCoffeeWithSugar(qty));
 						break;
-					case "1A1#":
-						do
-						{
-							Console.Write("\nYour choice is {0} with milk.", TypesOfCoffee.BlackCoffee.ToString());
-							Console.Write("\nEnter the quantity: ");
-							string line = Console.ReadLine();
-							int qty;
-							if (int.TryParse(line, out qty) && qty > 0 && qty < 100)
-							{
-								coffeeMachine.MakeBlackCoffeeWithMilk(qty);
-								ex = true;
-							}
-							else
-							{
-								Console.WriteLine("Not a number, please try again...");
-							}
-						}
-						while (!ex);
-						Console.WriteLine("\nThank you!! Coffee machine made {0} cups of coffee for you.", coffeeMachine.GetLastOrder().quantityOfCups);
+					case "1A#":
+						DoChoiceImpl(CoffeeTypes.BlackCoffee, qty => coffeeMachine.MakeBlackCoffeeWithMilk(qty));
 						break;
-					case "1A1*":
-						do
-						{
-							Console.Write("\nYour choice is {0} with sugar and milk.", TypesOfCoffee.BlackCoffee.ToString());
-							Console.Write("\nEnter the quantity: ");
-							string line = Console.ReadLine();
-							int qty;
-							if (int.TryParse(line, out qty) && qty > 0 && qty < 100)
-							{
-								coffeeMachine.MakeBlackCoffeeWithSugarAndMilk(qty);
-								ex = true;
-							}
-							else
-							{
-								Console.WriteLine("Not a number, please try again...");
-							}
-						}
-						while (!ex);
-						Console.WriteLine("\nThank you!! Coffee machine made {0} cups of coffee for you.", coffeeMachine.GetLastOrder().quantityOfCups);
+					case "1A*":
+						DoChoiceImpl(CoffeeTypes.BlackCoffee, qty => coffeeMachine.MakeBlackCoffeeWithSugarAndMilk(qty));
 						break;
-					case "1B0":
-						do
-						{
-							Console.Write("\nYour choice is {0}.", TypesOfCoffee.Espresso.ToString());
-							Console.Write("\nEnter the quantity: ");
-							string line = Console.ReadLine();
-							int qty;
-							if (int.TryParse(line, out qty) && qty > 0 && qty < 100)
-							{
-								coffeeMachine.MakeEspresso(qty);
-								ex = true;
-							}
-							else
-							{
-								Console.WriteLine("Not a number, please try again...");
-							}
-						}
-						while (!ex);
-						Console.WriteLine("\nThank you!! Coffee machine made {0} cups of coffee for you.", coffeeMachine.GetLastOrder().quantityOfCups);
+					case "1B":
+						DoChoiceImpl(CoffeeTypes.Espresso, qty => coffeeMachine.MakeEspresso(qty));
 						break;
-					case "1C0":
-						do
-						{
-							Console.Write("\nYour choice is {0}.", TypesOfCoffee.Mocha.ToString());
-							Console.Write("\nEnter the quantity: ");
-							string line = Console.ReadLine();
-							int qty;
-							if (int.TryParse(line, out qty) && qty > 0 && qty < 100)
-							{
-								coffeeMachine.MakeMocha(qty);
-								ex = true;
-							}
-							else
-							{
-								Console.WriteLine("Not a number, please try again...");
-							}
-						}
-						while (!ex);
-						Console.WriteLine("\nThank you!! Coffee machine made {0} cups of coffee for you.", coffeeMachine.GetLastOrder().quantityOfCups);
+					case "1C":
+						DoChoiceImpl(CoffeeTypes.Mocha, qty => coffeeMachine.MakeMocha(qty));
 						break;
-					case "1D0":
-						do
-						{
-							Console.Write("\nYour choice is {0}.", TypesOfCoffee.Mokachino.ToString());
-							Console.Write("\nEnter the quantity: ");
-							string line = Console.ReadLine();
-							int qty;
-							if (int.TryParse(line, out qty) && qty > 0 && qty < 100)
-							{
-								coffeeMachine.MakeMokachino(qty);
-								ex = true;
-							}
-							else
-							{
-								Console.WriteLine("Not a number, please try again...");
-							}
-						}
-						while (!ex);
-						Console.WriteLine("\nThank you!! Coffee machine made {0} cups of coffee for you.", coffeeMachine.GetLastOrder().quantityOfCups);
+					case "1D":
+						DoChoiceImpl(CoffeeTypes.Mokachino, qty => coffeeMachine.MakeMokachino(qty));
 						break;
 					case "=":
-						Console.WriteLine("Total ordered:\t{0:N}", coffeeMachine.Calculate().quantityOfCups);
-						Console.WriteLine("Total ingredients used:\t{0:F}", coffeeMachine.Calculate().totalOfIngredients);
+						CoffeeMachine.Response response = coffeeMachine.CalculateTotals();
+						Console.WriteLine("Total ordered:\t{0:N} (units)", response.QuantityOfCups);
+						Console.WriteLine("Total ingredients used:\t{0:F} (grs)", response.TotalOfIngredients);
+						Console.WriteLine("\nReady to have your next command.\n");
 						break;
 					case "*":
 						Console.Clear();
 						DisplayMenu();
 						break;
+					case "EXIT":
 					case "\u001B":
 						flagReset = true;
 						Console.Clear();
