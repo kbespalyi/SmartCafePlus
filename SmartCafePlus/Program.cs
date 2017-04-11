@@ -349,11 +349,11 @@ namespace SmartCafePlus
 				this.ingredients.AddRange(ingredients.GetRange(0, ingredients.Count));
 			}
 
-			public Response MergeIngredients(List<Ingredient> ingredients, int quantityOfCups)
+			public Response MergeIngredients(List<Ingredient> ingredients)
 			{
 				foreach (Ingredient entry in ingredients)
 				{
-					float qty = entry.Quantity; // * quantityOfCups;
+					float qty = entry.Quantity;
 					Ingredient obj = this.ingredients.Find(item =>
 					{
 						return item.Type.Equals(entry.Type);
@@ -377,7 +377,7 @@ namespace SmartCafePlus
 
 			foreach (KeyValuePair<Coffee, int> entry in drinks)
 			{
-				response.TotalOfIngredients += entry.Key.SumOfIngredients; // * entry.Value;
+				response.TotalOfIngredients += entry.Key.SumOfIngredients;
 				response.QuantityOfCups += entry.Value;
 			}
 
@@ -428,7 +428,7 @@ namespace SmartCafePlus
 
 					if (result.TryGetValue(item.Species, out response) && response != null)
 					{
-						response.MergeIngredients(ingredients, entry.Value);
+						response.MergeIngredients(ingredients);
 						response.QuantityOfCups += entry.Value;
 						response.TotalOfIngredients += item.SumOfIngredients;
 					}
@@ -457,7 +457,7 @@ namespace SmartCafePlus
 
 				result.TotalOfIngredients += response.TotalOfIngredients;
 				result.QuantityOfCups += response.QuantityOfCups;
-				result.MergeIngredients(response.Ingredients.GetRange(0, response.Ingredients.Count), response.QuantityOfCups);
+				result.MergeIngredients(response.Ingredients.GetRange(0, response.Ingredients.Count));
 
 			}
 			return result;
@@ -465,7 +465,6 @@ namespace SmartCafePlus
 
 		public void Restart()
 		{
-
 			Console.WriteLine("Restarting...");
 			drinks.Clear();
 			System.Threading.Thread.Sleep(5000);
@@ -653,6 +652,11 @@ namespace SmartCafePlus
 						{
 							Console.WriteLine("\t{0}\t" + (item.Type.ToString().Length < 6 ? "\t" : "") + "{1:F} (grs)", item.Type.ToString(), item.Quantity);
 						}
+						Console.WriteLine(new String('~', 50));
+
+						Console.WriteLine("\nReady to have your next command.\n");
+						break;
+					case "REP3":
 						Console.WriteLine(new String('~', 50));
 
 						Console.WriteLine("\nReady to have your next command.\n");
